@@ -401,8 +401,10 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
             
             let time = CMTime(seconds: timestamp - _time, preferredTimescale: CMTimeScale(600))
             
+            //Lock `pixelBuffer` before working on it
             CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: 0))
-            
+                
+             //Deep copy buffer pixel to avoid memory leak
             var renderedOutputPixelBuffer: CVPixelBuffer? = nil
             let options = [
                 kCVPixelBufferCGImageCompatibilityKey as String: true,
@@ -424,7 +426,7 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
                    CVPixelBufferGetBaseAddress(pixelBuffer),
                    CVPixelBufferGetHeight(pixelBuffer) * CVPixelBufferGetBytesPerRow(pixelBuffer))
             
-            //Lock the copy of pixel buffer when working on ti
+            //Lock the copy of pixel buffer when working on it
             CVPixelBufferLockBaseAddress(renderedOutputPixelBuffer!, CVPixelBufferLockFlags(rawValue: 0))
             
             var requestOptions: [VNImageOption : Any] = [:]
@@ -435,10 +437,10 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
             
             let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: exifOrientation, options: requestOptions)
             
+            // Get face detection results
             do {
                 try imageRequestHandler.perform(requests)
             }
-                
             catch {
                 print(error)
             }
@@ -478,6 +480,7 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
             if _assetWriterInput?.isReadyForMoreMediaData == true {
                 _adpater?.append(renderedOutputPixelBuffer!, withPresentationTime: time)
             }
+             //Unlock buffers after processed on them
             CVPixelBufferUnlockBaseAddress(renderedOutputPixelBuffer!,
                                            CVPixelBufferLockFlags(rawValue: 0))
             CVPixelBufferUnlockBaseAddress(pixelBuffer,
